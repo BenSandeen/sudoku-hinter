@@ -90,42 +90,6 @@ class Sudoku:
         """Sort of duplicates some of the code from `check_board()` but that's okay for now.  Checks to make sure there
         only at most one of each number in each row, column, and subsquare
         """
-        # for ii, row in enumerate(board):
-        #     if ii != modified_cell.row:  # Don't check if nothing has changed for this row
-        #         continue
-        #     # non_zeros_row = [x for x in row if x != 0]
-        #     non_zeros_row = self.get_nums_in_row(board, modified_cell)
-        #     if len(set(non_zeros_row)) != len(non_zeros_row):  # Checks for duplicate numbers in row (ignoring zeros)
-        #         return False
-        # for jj, col_idx in enumerate(range(self.size)):  # Don't check if nothing has changed for this col
-        #     if jj != modified_cell.col:
-        #         continue
-        #     # non_zeros_col = [x for x in [row[col_idx] for row in board] if x != 0]
-        #     non_zeros_col = self.get_nums_in_col(board, modified_cell)
-        #     if len(set(non_zeros_col)) != len(non_zeros_col):
-        #         return False
-        # for subsquare_row_idx in range(self.subsquare_size):
-        #     if modified_cell.row not in range(subsquare_row_idx * self.subsquare_size,
-        #                                       subsquare_row_idx * self.subsquare_size + self.subsquare_size):
-        #         continue
-        #
-        #     for subsquare_col_idx in range(self.subsquare_size):
-        #         # Make sure the subsquare we're checking is the one that was modified, if the modified cell was provided
-        #         # if (modified_cell.col not in range(subsquare_col_idx * self.subsquare_size,
-        #         #                                    subsquare_col_idx * self.subsquare_size + self.subsquare_size) or
-        #         #         modified_cell.row not in range(subsquare_row_idx * self.subsquare_size,
-        #         #                                        subsquare_row_idx * self.subsquare_size + self.subsquare_size)):
-        #         #     continue
-        #         if modified_cell.col not in range(subsquare_col_idx * self.subsquare_size,
-        #                                           subsquare_col_idx * self.subsquare_size + self.subsquare_size):
-        #             continue
-        #
-        #         subsquare = [row[subsquare_col_idx * self.subsquare_size:subsquare_col_idx * self.subsquare_size + self.subsquare_size]
-        #                      for row in board[subsquare_row_idx * self.subsquare_size: subsquare_row_idx * self.subsquare_size + self.subsquare_size]]
-        #         subsquare_nums = [item for sublist in subsquare for item in sublist]
-        #         non_zeros_subsquare = [x for x in subsquare_nums if x != 0]
-        #         if len(set(non_zeros_subsquare)) != len(non_zeros_subsquare):
-        #             return False
         non_zeros_row = self.get_nums_in_row(board, modified_cell)
         if len(set(non_zeros_row)) != len(non_zeros_row):
             return False
@@ -161,26 +125,6 @@ class Sudoku:
     # @profile
     def get_nums_in_subsquare(self, curr_board: List[List[int]], cell: Cell):
         """Basically copies stuff from `check_intermediate_board()` which is okay for now"""
-        # for subsquare_row_idx in range(self.subsquare_size):
-        #     if cell.row not in range(subsquare_row_idx * self.subsquare_size,
-        #                              subsquare_row_idx * self.subsquare_size + self.subsquare_size):
-        #         continue
-        #     for subsquare_col_idx in range(self.subsquare_size):
-        #         # Make sure the subsquare we're checking is the one that was modified, if the modified cell was provided
-        #         # if (cell.col not in range(subsquare_col_idx * self.subsquare_size,
-        #         #                           subsquare_col_idx * self.subsquare_size + self.subsquare_size) or
-        #         #         cell.row not in range(subsquare_row_idx * self.subsquare_size,
-        #         #                               subsquare_row_idx * self.subsquare_size + self.subsquare_size)):
-        #         #     continue
-        #         if cell.col not in range(subsquare_col_idx * self.subsquare_size,
-        #                                  subsquare_col_idx * self.subsquare_size + self.subsquare_size):
-        #             continue
-        #
-        #         subsquare = [row[subsquare_col_idx * self.subsquare_size:subsquare_col_idx * self.subsquare_size + self.subsquare_size]
-        #                      for row in curr_board[subsquare_row_idx * self.subsquare_size: subsquare_row_idx * self.subsquare_size + self.subsquare_size]]
-        #         subsquare_nums = [item for sublist in subsquare for item in sublist]
-        #         non_zeros_subsquare = [x for x in subsquare_nums if x != 0]
-        #         return non_zeros_subsquare
         subsquare_row_idx = cell.row // self.subsquare_size
         subsq_row_start = subsquare_row_idx * self.subsquare_size
         subsq_row_end = subsq_row_start + self.subsquare_size
@@ -190,8 +134,6 @@ class Sudoku:
         subsq_col_end = subsq_col_start + self.subsquare_size
 
         subsquare = [row[subsq_col_start:subsq_col_end] for row in curr_board[subsq_row_start:subsq_row_end]]
-        # subsquare_nums = [item for sublist in subsquare for item in sublist]  # Flatten list of lists into single list
-        # subsquare_non_zeros = [x for x in subsquare_nums if x != 0]
 
         # Flatten list of lists into single list and ignore zeros
         subsquare_non_zeros = [item for sublist in subsquare for item in sublist if item != 0]

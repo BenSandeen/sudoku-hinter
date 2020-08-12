@@ -19,21 +19,22 @@ class Sudoku:
         self.size = size
         self.subsquare_size = int(math.sqrt(size))
 
+        self.all_nums_to_match = list(range(1, self.size + 1))
+
         self.board = board
-        self.recursive_levels = 0
 
     # @profile
     def solve_puzzle(self, curr_board: List[List[int]], last_modified_cell: Cell = Cell(0, 0)):
-        self.recursive_levels += 1
         for ii, row in enumerate(curr_board):
             if ii < last_modified_cell.row:
                 continue
             for jj, cell in enumerate(row):
                 # Used to avoid random num generator picking same nums repeatedly
                 if self.size <= 9:
-                    untried_cell_values = [x for x in range(1, self.size + 1) if x not in row]
+                    # untried_cell_values = [x for x in range(1, self.size + 1) if x not in row]
+                    untried_cell_values = [x for x in self.all_nums_to_match if x not in row]
                 else:
-                    untried_cell_values = [x for x in range(1, self.size + 1)
+                    untried_cell_values = [x for x in self.all_nums_to_match
                                            if x not in self.get_nums_in_row(curr_board, Cell(ii, jj)) and
                                               x not in self.get_nums_in_col(curr_board, Cell(ii, jj)) and
                                               x not in self.get_nums_in_subsquare(curr_board, Cell(ii, jj))
@@ -41,7 +42,6 @@ class Sudoku:
 
                 while curr_board[ii][jj] == 0:
                     if untried_cell_values == []:  # If we've tried everything and nothing worked, return and backtrack
-                        self.recursive_levels -= 1
                         curr_board[last_modified_cell.row][last_modified_cell.col] = 0  # Reset to zero
                         return
 
@@ -70,17 +70,17 @@ class Sudoku:
 
         # Now actually verify that each value appears just once in each row, column, and subsquare
         for row in board:
-            if sorted(row) != list(range(1, self.size + 1)):
+            if sorted(row) != self.all_nums_to_match:
                 return False
         for col_idx in range(self.size):
-            if sorted([row[col_idx] for row in board]) != list(range(1, self.size + 1)):
+            if sorted([row[col_idx] for row in board]) != self.all_nums_to_match:
                 return False
         for subsquare_row_idx in range(self.subsquare_size):
             for subsquare_col_idx in range(self.subsquare_size):
                 subsquare = [row[subsquare_col_idx:subsquare_col_idx + self.subsquare_size]
                              for row in board[subsquare_row_idx: subsquare_row_idx + self.subsquare_size]]
                 subsquare_nums = [item for sublist in subsquare for item in sublist]
-                if sorted(subsquare_nums) != list(range(self.size)):
+                if sorted(subsquare_nums) != self.all_nums_to_match:
                     return False
 
         return True
@@ -160,10 +160,10 @@ if __name__ == '__main__':
     s.solve_puzzle(s.board)
     print(s)
 
-    # s = Sudoku(read_sample_puzzle("16x16_sample_puzzle.csv"))
-    # s.solve_puzzle(s.board)
-    # print(s)
-
-    s = Sudoku(read_sample_puzzle("16x16_another_puzzle.csv"))
+    s = Sudoku(read_sample_puzzle("16x16_sample_puzzle.csv"))
     s.solve_puzzle(s.board)
     print(s)
+
+    # s = Sudoku(read_sample_puzzle("16x16_another_puzzle.csv"))
+    # s.solve_puzzle(s.board)
+    # print(s)

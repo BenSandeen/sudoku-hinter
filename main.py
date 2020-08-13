@@ -3,10 +3,12 @@ import math
 import random
 import sys
 from typing import List
-from collections import namedtuple
+from collections import namedtuple, OrderedDict
+
 
 Cell = namedtuple("Cell", ["row", "col"])
 sys.setrecursionlimit(100000)
+
 
 class Sudoku:
     def __init__(self, board: List[List[int]]):
@@ -22,38 +24,38 @@ class Sudoku:
         self.all_nums_to_match = list(range(1, self.size + 1))
 
         self.board = board
+        self.choices = OrderedDict({Cell(ii, jj): [] for ii in range(self.size) for jj in range(self.size)
+                                    if self.board[ii][jj] == 0})
+        self.update_choices()
 
     # @profile
     def solve_puzzle(self, last_modified_cell: Cell = Cell(0, 0)):
-        for ii, row in enumerate(self.board):
-            if ii < last_modified_cell.row:
-                continue
-            for jj, cell in enumerate(row):
-                # Used to avoid random num generator picking same nums repeatedly
-                if self.size <= 9:
-                    untried_cell_values = [x for x in self.all_nums_to_match if x not in row]
-                else:
-                    untried_cell_values = [x for x in self.all_nums_to_match
-                                           if x not in self.get_nums_in_row(Cell(ii, jj)) and
-                                              x not in self.get_nums_in_col(Cell(ii, jj)) and
-                                              x not in self.get_nums_in_subsquare(Cell(ii, jj))
-                                           ]
-
-                while self.board[ii][jj] == 0:
-                    if untried_cell_values == []:  # If we've tried everything and nothing worked, return and backtrack
-                        self.board[last_modified_cell.row][last_modified_cell.col] = 0  # Reset to zero
-                        return
-
-                    temp = random.choice(untried_cell_values)
-                    untried_cell_values.remove(temp)
-
-                    self.board[ii][jj] = temp
-                    if self.check_intermediate_board(modified_cell=Cell(ii, jj)):
-                        self.solve_puzzle(last_modified_cell=Cell(ii, jj))
-                    else:
-                        self.board[ii][jj] = 0
-
+        """This uses the `self.choices` member to work its way through the puzzle starting with the cells with the
+        fewest options to choose from, which should drastically increase performance"""
+        # while self.check_puzzle() is False:
+        self.update_choices()
         if self.check_puzzle():
+            return
+        for cell, valid_nums in self.choices.items():
+            if self.check_puzzle():
+                return
+
+            while self.board[cell.row][cell.col] == 0:
+                if len(valid_nums) == 0:
+                    self.board[cell.row][cell.col] = 0
+                    self.board[last_modified_cell.row][last_modified_cell.col] = 0  # Reset to zero
+                    self.update_choices()
+                    return
+
+                temp = random.choice(valid_nums)
+                valid_nums.remove(temp)  # This also removes it from `self.choices`, so don't try to do it manually!
+
+                self.board[cell.row][cell.col] = temp
+                self.solve_puzzle(last_modified_cell=cell)
+        if self.check_puzzle():
+            return
+        else:
+            self.update_choices()
             return
 
     # @profile
@@ -114,15 +116,15 @@ class Sudoku:
         return s
 
     # @profile
-    def get_nums_in_row(self, cell: Cell):
+    def get_nums_in_row(self, cell: Cell) -> List[int]:
         return [x for x in self.board[cell.row] if x != 0]
 
     # @profile
-    def get_nums_in_col(self, cell: Cell):
+    def get_nums_in_col(self, cell: Cell) -> List[int]:
         return [row[cell.col] for row in self.board if row[cell.col] != 0]
 
     # @profile
-    def get_nums_in_subsquare(self, cell: Cell):
+    def get_nums_in_subsquare(self, cell: Cell) -> List[int]:
         """Basically copies stuff from `check_intermediate_board()` which is okay for now"""
         subsquare_row_idx = cell.row // self.subsquare_size
         subsq_row_start = subsquare_row_idx * self.subsquare_size
@@ -137,6 +139,30 @@ class Sudoku:
         # Flatten list of lists into single list and ignore zeros
         subsquare_non_zeros = [item for sublist in subsquare for item in sublist if item != 0]
         return subsquare_non_zeros
+
+    def update_choices(self):
+        """Updates dict holding the possible valid numbers which each cell can hold"""
+        for ii in range(self.size):
+            for jj in range(self.size):
+                if Cell(ii, jj) not in self.choices.keys():
+                    continue
+                invalid_values = self.get_nums_in_col(Cell(ii, jj)) + self.get_nums_in_row(Cell(ii, jj)) + \
+                                 self.get_nums_in_subsquare(Cell(ii, jj))
+                valid_values = [val for val in self.all_nums_to_match if val not in invalid_values]
+                self.choices[Cell(ii, jj)] = valid_values
+
+        # Sort based on number of valid choices, so we can start with the cells with the fewest valid choices first
+        self.choices = OrderedDict(sorted(self.choices.items(), key=lambda kv: len(kv[1])))
+
+    def remove_choices_for_cell(self, cell: Cell, choices: List[int]):
+        """Removes from the list of valid numbers for a given cell"""
+        for value in choices:
+            self.choices[cell].remove(value)
+
+    def add_choices_for_cell(self, cell: Cell, choices: List[int]):
+        """Adds to the list of valid numbers for a given cell"""
+        self.choices[cell].extend(choices)
+
 
 def read_sample_puzzle(file_name):
     puzzle = []
@@ -155,14 +181,14 @@ if __name__ == '__main__':
     s.solve_puzzle()
     print(s)
 
-    # s = Sudoku(read_sample_puzzle("9x9_tough.csv"))
-    # s.solve_puzzle()
-    # print(s)
+    s = Sudoku(read_sample_puzzle("9x9_tough.csv"))
+    s.solve_puzzle()
+    print(s)
 
-    # s = Sudoku(read_sample_puzzle("16x16_sample_puzzle.csv"))
-    # s.solve_puzzle(s.board)
-    # print(s)
+    s = Sudoku(read_sample_puzzle("16x16_sample_puzzle.csv"))
+    s.solve_puzzle()
+    print(s)
 
-    # s = Sudoku(read_sample_puzzle("16x16_another_puzzle.csv"))
-    # s.solve_puzzle(s.board)
-    # print(s)
+    s = Sudoku(read_sample_puzzle("16x16_another_puzzle.csv"))
+    s.solve_puzzle()
+    print(s)

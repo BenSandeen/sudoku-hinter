@@ -21,7 +21,8 @@ class Sudoku:
         self.size = size
         self.subsquare_size = int(math.sqrt(size))
 
-        self.all_nums_to_match = list(range(1, self.size + 1))
+        self.all_nums_to_match = set(range(1, self.size + 1))
+        self.all_nums_sum = sum(self.all_nums_to_match)
 
         self.board = board
         self.choices = OrderedDict({Cell(ii, jj): [] for ii in range(self.size) for jj in range(self.size)
@@ -32,10 +33,7 @@ class Sudoku:
     def solve_puzzle(self, last_modified_cell: Cell = Cell(0, 0)):
         """This uses the `self.choices` member to work its way through the puzzle starting with the cells with the
         fewest options to choose from, which should drastically increase performance"""
-        # while self.check_puzzle() is False:
         self.update_choices()
-        if self.check_puzzle():
-            return
         for cell, valid_nums in self.choices.items():
             if self.check_puzzle():
                 return
@@ -52,58 +50,32 @@ class Sudoku:
 
                 self.board[cell.row][cell.col] = temp
                 self.solve_puzzle(last_modified_cell=cell)
+
         if self.check_puzzle():
-            return
-        else:
-            self.update_choices()
             return
 
     # @profile
     def check_puzzle(self):
         # Add up values in each row as a quick check
         for row in self.board:
-            if sum(row) != (self.size * (self.size + 1) / 2):
+            if sum(row) != self.all_nums_sum:
                 return False
         for col_idx in range(self.size):
             col_sum = sum([row[col_idx] for row in self.board])
-            if col_sum != (self.size * (self.size + 1) / 2):
+            if col_sum != self.all_nums_sum:
                 return False
 
         # Now actually verify that each value appears just once in each row, column, and subsquare
         for row in self.board:
-            if sorted(row) != self.all_nums_to_match:
+            if set(row) != self.all_nums_to_match:
                 return False
         for col_idx in range(self.size):
-            if sorted([row[col_idx] for row in self.board]) != self.all_nums_to_match:
+            if set(self.get_nums_in_col(Cell(0, col_idx))) != self.all_nums_to_match:
                 return False
-        for subsquare_row_idx in range(self.subsquare_size):
-            for subsquare_col_idx in range(self.subsquare_size):
-                subsquare = [row[subsquare_col_idx:subsquare_col_idx + self.subsquare_size]
-                             for row in self.board[subsquare_row_idx: subsquare_row_idx + self.subsquare_size]]
-                subsquare_nums = [item for sublist in subsquare for item in sublist]
-                if sorted(subsquare_nums) != self.all_nums_to_match:
+        for subsquare_row_idx in range(0, self.size, self.subsquare_size):
+            for subsquare_col_idx in range(0, self.size, self.subsquare_size):
+                if set(self.get_nums_in_subsquare(Cell(subsquare_row_idx, subsquare_col_idx))) != self.all_nums_to_match:
                     return False
-
-        return True
-
-    # @profile
-    def check_intermediate_board(self, modified_cell: Cell):
-        """Sort of duplicates some of the code from `check_board()` but that's okay for now.  Checks to make sure there
-        only at most one of each number in each row, column, and subsquare
-        """
-        non_zeros_row = self.get_nums_in_row(modified_cell)
-        if len(set(non_zeros_row)) != len(non_zeros_row):
-            return False
-
-        non_zeros_col = self.get_nums_in_col(modified_cell)
-        if len(set(non_zeros_col)) != len(non_zeros_col):
-            return False
-
-        non_zeros_subsquare = self.get_nums_in_subsquare(modified_cell)
-        if len(set(non_zeros_subsquare)) != len(non_zeros_subsquare):
-            return False
-
-        # If we reach here, then there are no conflicting (i.e., duplicate) numbers in any row, column, or subsquare
         return True
 
     def __repr__(self):
@@ -137,9 +109,9 @@ class Sudoku:
         subsquare = [row[subsq_col_start:subsq_col_end] for row in self.board[subsq_row_start:subsq_row_end]]
 
         # Flatten list of lists into single list and ignore zeros
-        subsquare_non_zeros = [item for sublist in subsquare for item in sublist if item != 0]
-        return subsquare_non_zeros
+        return [item for sublist in subsquare for item in sublist if item != 0]
 
+    # @profile
     def update_choices(self):
         """Updates dict holding the possible valid numbers which each cell can hold"""
         for ii in range(self.size):
@@ -154,11 +126,13 @@ class Sudoku:
         # Sort based on number of valid choices, so we can start with the cells with the fewest valid choices first
         self.choices = OrderedDict(sorted(self.choices.items(), key=lambda kv: len(kv[1])))
 
+    # @profile
     def remove_choices_for_cell(self, cell: Cell, choices: List[int]):
         """Removes from the list of valid numbers for a given cell"""
         for value in choices:
             self.choices[cell].remove(value)
 
+    # @profile
     def add_choices_for_cell(self, cell: Cell, choices: List[int]):
         """Adds to the list of valid numbers for a given cell"""
         self.choices[cell].extend(choices)
@@ -185,10 +159,10 @@ if __name__ == '__main__':
     s.solve_puzzle()
     print(s)
 
-    s = Sudoku(read_sample_puzzle("16x16_sample_puzzle.csv"))
-    s.solve_puzzle()
-    print(s)
-
-    s = Sudoku(read_sample_puzzle("16x16_another_puzzle.csv"))
-    s.solve_puzzle()
-    print(s)
+    # s = Sudoku(read_sample_puzzle("16x16_sample_puzzle.csv"))
+    # s.solve_puzzle()
+    # print(s)
+    #
+    # s = Sudoku(read_sample_puzzle("16x16_another_puzzle.csv"))
+    # s.solve_puzzle()
+    # print(s)
